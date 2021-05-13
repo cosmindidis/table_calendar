@@ -1,7 +1,10 @@
 // Copyright 2019 Aleksander Woźniak
 // SPDX-License-Identifier: Apache-2.0
 
+import 'dart:collection';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../shared/utils.dart';
 import 'calendar_page.dart';
@@ -29,7 +32,9 @@ class CalendarCore extends StatelessWidget {
   final ScrollPhysics? scrollPhysics;
   final _OnCalendarPageChanged onPageChanged;
 
-  const CalendarCore({
+  final HashMap<DateTime, GlobalKey> keys = HashMap();
+
+  CalendarCore({
     Key? key,
     this.dowBuilder,
     required this.dayBuilder,
@@ -54,7 +59,13 @@ class CalendarCore extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PageView.builder(
+    keys.clear();
+
+    return Listener(
+        onPointerDown: (_) => _onStartRangeSelection(_),
+        onPointerMove: (_) => _onPanUpdate(_),
+        onPointerUp: (_) => _onEndRangeSelection(_),
+      child: PageView.builder(
       controller: pageController,
       physics: scrollPhysics,
       itemCount: _getPageCount(calendarFormat, firstDay, lastDay),
@@ -90,7 +101,10 @@ class CalendarCore extends StatelessWidget {
                   _getFocusedDay(calendarFormat, previousFocusedDay, index);
             }
 
+            GlobalKey k = GlobalKey();
+            keys[day] = k;
             return SizedBox(
+              key: k,
               height: constrainedRowHeight ?? rowHeight,
               child: dayBuilder(context, day, baseDay),
             );
@@ -108,7 +122,35 @@ class CalendarCore extends StatelessWidget {
 
         return onPageChanged(index, baseDay);
       },
-    );
+    ));
+  }
+
+  void _onStartRangeSelection(PointerDownEvent evt) {
+    _hitTest('_onStartRangeSelection ', evt);
+  }
+
+  void _hitTest(String info, PointerEvent evt) {
+    bool found = false;
+    keys.forEach((key, value) {
+      RenderObject? box = value.currentContext!.findRenderObject();
+      if (box is RenderBox) {
+        if (box.hitTest(BoxHitTestResult(), position: box.globalToLocal(evt.position))) {
+          print(info + ' '  + key.toString());
+          found = true;
+        }
+      }
+    });
+
+    if (!found)
+      print('No hit test');
+  }
+
+  void _onEndRangeSelection(PointerUpEvent evt) {
+    _hitTest('_onEndRangeSelection ', evt);
+  }
+
+  void _onPanUpdate(PointerMoveEvent evt) {
+    _hitTest('_onPanUpdate ', evt);
   }
 
   int _getPageCount(CalendarFormat format, DateTime first, DateTime last) {
