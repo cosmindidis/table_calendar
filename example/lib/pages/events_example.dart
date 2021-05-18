@@ -63,7 +63,7 @@ class _TableEventsExampleState extends State<TableEventsExample> {
     }
   }
 
-  void _onRangeSelected(DateTime? start, DateTime? end, DateTime focusedDay) {
+  void _onRangeSelected(DateTime? start, DateTime? end, DateTime focusedDay, String? eventName) {
     setState(() {
       _selectedDay = null;
       _focusedDay = focusedDay;

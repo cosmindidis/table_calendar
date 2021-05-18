@@ -22,8 +22,9 @@ typedef OnDaySelected = void Function(
 
 /// Signature for `onRangeSelected` callback.
 /// Contains start and end of the selected range, as well as currently focused day.
+/// `eventName` - custom field needed to decide when to open the popup for adding timesheet
 typedef OnRangeSelected = void Function(
-    DateTime? start, DateTime? end, DateTime focusedDay);
+    DateTime? start, DateTime? end, DateTime focusedDay, String? eventName);
 
 /// Modes that range selection can operate in.
 enum RangeSelectionMode { disabled, toggledOff, toggledOn, enforced }
@@ -271,6 +272,10 @@ class _TableCalendarState<T> extends State<TableCalendar<T>> {
   late RangeSelectionMode _rangeSelectionMode;
   DateTime? _firstSelectedDay;
 
+  // custom
+  var rangeStartDate;
+  var rangeEndDate;
+
   @override
   void initState() {
     super.initState();
@@ -348,13 +353,13 @@ class _TableCalendarState<T> extends State<TableCalendar<T>> {
     if (_isRangeSelectionOn && widget.onRangeSelected != null) {
       if (_firstSelectedDay == null) {
         _firstSelectedDay = day;
-        widget.onRangeSelected!(_firstSelectedDay, null, _focusedDay.value);
+        widget.onRangeSelected!(_firstSelectedDay, null, _focusedDay.value, null);
       } else {
         if (day.isAfter(_firstSelectedDay!)) {
-          widget.onRangeSelected!(_firstSelectedDay, day, _focusedDay.value);
+          widget.onRangeSelected!(_firstSelectedDay, day, _focusedDay.value, null);
           _firstSelectedDay = null;
         } else if (day.isBefore(_firstSelectedDay!)) {
-          widget.onRangeSelected!(day, _firstSelectedDay, _focusedDay.value);
+          widget.onRangeSelected!(day, _firstSelectedDay, _focusedDay.value, null);
           _firstSelectedDay = null;
         }
       }
@@ -385,7 +390,7 @@ class _TableCalendarState<T> extends State<TableCalendar<T>> {
 
         if (_isRangeSelectionOn) {
           _firstSelectedDay = day;
-          widget.onRangeSelected!(_firstSelectedDay, null, _focusedDay.value);
+          widget.onRangeSelected!(_firstSelectedDay, null, _focusedDay.value, null);
         } else {
           _firstSelectedDay = null;
           widget.onDaySelected?.call(day, _focusedDay.value);
@@ -523,39 +528,48 @@ class _TableCalendarState<T> extends State<TableCalendar<T>> {
             },
             dayBuilder: (context, day, focusedMonth) {
               return _buildCell(day, focusedMonth);
-              return Listener(
-                onPointerDown: (_) => _onStartRangeSelection(day),
-                onPointerMove: (_) => _onPanUpdate(day),
-                onPointerUp: (_) => _onEndRangeSelection(day),
-                child: _buildCell(day, focusedMonth),
-              );
-              return GestureDetector(
-                behavior: widget.dayHitTestBehavior,
-                onTapDown: (_) => _onStartRangeSelection(day),
-                onTapUp: (_) => _onEndRangeSelection(day),
-                onPanUpdate: (_) => _onPanUpdate(day),
-                onPanEnd: (_) => _onEndRangeSelection(day),
-                //onTap: () => _onDayTapped(day),
-                //onLongPress: () => _onDayLongPressed(day),
-                child: _buildCell(day, focusedMonth),
-              );
+              // return Listener(
+              //   onPointerDown: (_) => _onStartRangeSelection(day),
+              //   onPointerMove: (_) => _onPanUpdate(day),
+              //   onPointerUp: (_) => _onEndRangeSelection(day),
+              //   child: _buildCell(day, focusedMonth),
+              // );
+              // return GestureDetector(
+              //   behavior: widget.dayHitTestBehavior,
+              //   onTapDown: (_) => _onStartRangeSelection(day),
+              //   onTapUp: (_) => _onEndRangeSelection(day),
+              //   onPanUpdate: (_) => _onPanUpdate(day),
+              //   onPanEnd: (_) => _onEndRangeSelection(day),
+              //   onTap: () => _onDayTapped(day),
+              //   //onLongPress: () => _onDayLongPressed(day),
+              //   child: _buildCell(day, focusedMonth),
+              //);
+            },
+            onStartRangeSelection: (day) {
+              print("onStartRangeSelection: " + day.day.toString());
+              this.rangeStartDate = day;
+              _isDayDisabled(day) 
+                ? widget.onDisabledDayTapped?.call(day)
+                : widget.onRangeSelected?.call(this.rangeStartDate, this.rangeStartDate, this.rangeStartDate, "onStartRangeSelection");
+            },
+            onEndRangeSelection: (day) {
+              print("onEndRangeSelection: " + day.day.toString());
+              this.rangeEndDate = day;
+              _isDayDisabled(day) 
+                ? null
+                : widget.onRangeSelected?.call(this.rangeStartDate, this.rangeEndDate, this.rangeStartDate, "onEndRangeSelection");
+            },
+            onPanUpdate: (day) {
+              print("onPanUpdate: " + day.day.toString());
+              this.rangeEndDate = day;
+              _isDayDisabled(day) 
+                ? null
+                : widget.onRangeSelected?.call(this.rangeStartDate, this.rangeEndDate, this.rangeStartDate, "onPanUpdate");
             },
           ),
         ),
       ],
     );
-  }
-
-  void _onStartRangeSelection(DateTime day) {
-    print('_onStartRangeSelection ' + day.toString());
-  }
-
-  void _onEndRangeSelection(DateTime day) {
-    print('_onEndRangeSelection ' + day.toString());
-  }
-
-  void _onPanUpdate(DateTime day) {
-    print('_onPanUpdate ' + day.toString());
   }
 
   Widget _buildCell(DateTime day, DateTime focusedDay) {

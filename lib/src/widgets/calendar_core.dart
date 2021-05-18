@@ -9,8 +9,14 @@ import 'package:flutter/rendering.dart';
 import '../shared/utils.dart';
 import 'calendar_page.dart';
 
-typedef _OnCalendarPageChanged = void Function(
-    int pageIndex, DateTime focusedDay);
+typedef _OnCalendarPageChanged = void Function(int pageIndex, DateTime focusedDay);
+
+/// custom - required for onPointerDown listener
+typedef OnStartRangeSelection = void Function(DateTime day);
+/// custom - required for onPointerUp listener
+typedef OnEndRangeSelection = void Function(DateTime day);
+/// custom - required for onPointerMove listener
+typedef OnPanUpdate = void Function(DateTime day);
 
 class CalendarCore extends StatelessWidget {
   final DateTime? focusedDay;
@@ -31,6 +37,10 @@ class CalendarCore extends StatelessWidget {
   final PageController? pageController;
   final ScrollPhysics? scrollPhysics;
   final _OnCalendarPageChanged onPageChanged;
+
+  final OnStartRangeSelection onStartRangeSelection;
+  final OnEndRangeSelection onEndRangeSelection;
+  final OnPanUpdate onPanUpdate;
 
   final HashMap<DateTime, GlobalKey> keys = HashMap();
 
@@ -54,6 +64,9 @@ class CalendarCore extends StatelessWidget {
     this.dowDecoration,
     this.rowDecoration,
     this.scrollPhysics,
+    required this.onStartRangeSelection,
+    required this.onEndRangeSelection,
+    required this.onPanUpdate
   })  : assert(!dowVisible || (dowHeight != null && dowBuilder != null)),
         super(key: key);
 
@@ -65,92 +78,108 @@ class CalendarCore extends StatelessWidget {
         onPointerDown: (_) => _onStartRangeSelection(_),
         onPointerMove: (_) => _onPanUpdate(_),
         onPointerUp: (_) => _onEndRangeSelection(_),
-      child: PageView.builder(
-      controller: pageController,
-      physics: scrollPhysics,
-      itemCount: _getPageCount(calendarFormat, firstDay, lastDay),
-      itemBuilder: (context, index) {
-        final baseDay = _getBaseDay(calendarFormat, index);
-        final visibleRange = _getVisibleRange(calendarFormat, baseDay);
-        final visibleDays = _daysInRange(visibleRange.start, visibleRange.end);
+        onPointerCancel: (_) => _onPointerCancel(_),
+        child: PageView.builder(
+          controller: pageController,
+          physics: scrollPhysics,
+          itemCount: _getPageCount(calendarFormat, firstDay, lastDay),
+          itemBuilder: (context, index) {
+            final baseDay = _getBaseDay(calendarFormat, index);
+            final visibleRange = _getVisibleRange(calendarFormat, baseDay);
+            final visibleDays = _daysInRange(visibleRange.start, visibleRange.end);
 
-        final actualDowHeight = dowVisible ? dowHeight! : 0.0;
-        final constrainedRowHeight = constraints.hasBoundedHeight
-            ? (constraints.maxHeight - actualDowHeight) /
-                _getRowCount(calendarFormat, baseDay)
-            : null;
+            final actualDowHeight = dowVisible ? dowHeight! : 0.0;
+            final constrainedRowHeight = constraints.hasBoundedHeight
+                ? (constraints.maxHeight - actualDowHeight) /
+                    _getRowCount(calendarFormat, baseDay)
+                : null;
 
-        return CalendarPage(
-          visibleDays: visibleDays,
-          dowVisible: dowVisible,
-          dowDecoration: dowDecoration,
-          rowDecoration: rowDecoration,
-          dowBuilder: (context, day) {
-            return SizedBox(
-              height: dowHeight,
-              child: dowBuilder?.call(context, day),
+            return CalendarPage(
+              visibleDays: visibleDays,
+              dowVisible: dowVisible,
+              dowDecoration: dowDecoration,
+              rowDecoration: rowDecoration,
+              dowBuilder: (context, day) {
+                return SizedBox(
+                  height: dowHeight,
+                  child: dowBuilder?.call(context, day),
+                );
+              },
+              dayBuilder: (context, day) {
+                DateTime baseDay;
+                final previousFocusedDay = focusedDay;
+                if (previousFocusedDay == null || previousIndex == null) {
+                  baseDay = _getBaseDay(calendarFormat, index);
+                } else {
+                  baseDay =
+                      _getFocusedDay(calendarFormat, previousFocusedDay, index);
+                }
+
+                GlobalKey k = GlobalKey();
+                keys[day] = k;
+                return SizedBox(
+                  key: k,
+                  height: constrainedRowHeight ?? rowHeight,
+                  child: dayBuilder(context, day, baseDay),
+                );
+              },
             );
           },
-          dayBuilder: (context, day) {
+          onPageChanged: (index) {
             DateTime baseDay;
             final previousFocusedDay = focusedDay;
             if (previousFocusedDay == null || previousIndex == null) {
               baseDay = _getBaseDay(calendarFormat, index);
             } else {
-              baseDay =
-                  _getFocusedDay(calendarFormat, previousFocusedDay, index);
+              baseDay = _getFocusedDay(calendarFormat, previousFocusedDay, index);
             }
 
-            GlobalKey k = GlobalKey();
-            keys[day] = k;
-            return SizedBox(
-              key: k,
-              height: constrainedRowHeight ?? rowHeight,
-              child: dayBuilder(context, day, baseDay),
-            );
+            return onPageChanged(index, baseDay);
           },
-        );
-      },
-      onPageChanged: (index) {
-        DateTime baseDay;
-        final previousFocusedDay = focusedDay;
-        if (previousFocusedDay == null || previousIndex == null) {
-          baseDay = _getBaseDay(calendarFormat, index);
-        } else {
-          baseDay = _getFocusedDay(calendarFormat, previousFocusedDay, index);
-        }
-
-        return onPageChanged(index, baseDay);
-      },
-    ));
+        )
+    );
   }
 
   void _onStartRangeSelection(PointerDownEvent evt) {
-    _hitTest('_onStartRangeSelection ', evt);
+    _hitCell('_onStartRangeSelection', evt);
   }
 
-  void _hitTest(String info, PointerEvent evt) {
+  void _onEndRangeSelection(PointerUpEvent evt) {
+    _hitCell('_onEndRangeSelection', evt);
+  }
+
+  void _onPanUpdate(PointerMoveEvent evt) {
+    _hitCell('_onPanUpdate', evt);
+  }
+
+  void _onPointerCancel(PointerCancelEvent evt) {
+    _hitCell('_onPointerCancel', evt);
+  }
+
+  void _hitCell(String info, PointerEvent evt) {
     bool found = false;
     keys.forEach((key, value) {
       RenderObject? box = value.currentContext!.findRenderObject();
       if (box is RenderBox) {
         if (box.hitTest(BoxHitTestResult(), position: box.globalToLocal(evt.position))) {
-          print(info + ' '  + key.toString());
+          //print(info + ' '  + key.toString());
           found = true;
+
+          if (info == "_onStartRangeSelection") {
+              onStartRangeSelection(key);
+          }
+          else if (info == "_onEndRangeSelection") {
+              onEndRangeSelection(key);
+          }
+          else if (info == "_onPanUpdate") {
+              onPanUpdate(key);
+          }
         }
       }
     });
 
     if (!found)
       print('No hit test');
-  }
-
-  void _onEndRangeSelection(PointerUpEvent evt) {
-    _hitTest('_onEndRangeSelection ', evt);
-  }
-
-  void _onPanUpdate(PointerMoveEvent evt) {
-    _hitTest('_onPanUpdate ', evt);
   }
 
   int _getPageCount(CalendarFormat format, DateTime first, DateTime last) {

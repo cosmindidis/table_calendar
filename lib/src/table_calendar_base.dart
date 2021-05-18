@@ -7,6 +7,13 @@ import 'package:simple_gesture_detector/simple_gesture_detector.dart';
 import 'shared/utils.dart';
 import 'widgets/calendar_core.dart';
 
+/// custom - required to send the onPointerDown event from calendar_core
+typedef OnStartRangeSelection = void Function(DateTime day);
+/// custom - required to send the onPointerUp event from calendar_core
+typedef OnEndRangeSelection = void Function(DateTime day);
+/// custom - required to send the onPointerMove event from calendar_core
+typedef OnPanUpdate = void Function(DateTime day);
+
 class TableCalendarBase extends StatefulWidget {
   final DateTime firstDay;
   final DateTime lastDay;
@@ -32,6 +39,10 @@ class TableCalendarBase extends StatefulWidget {
   final SwipeCallback? onVerticalSwipe;
   final void Function(DateTime focusedDay)? onPageChanged;
   final void Function(PageController pageController)? onCalendarCreated;
+  
+  final OnStartRangeSelection onStartRangeSelection;
+  final OnEndRangeSelection onEndRangeSelection;
+  final OnPanUpdate onPanUpdate;
 
   TableCalendarBase({
     Key? key,
@@ -66,6 +77,9 @@ class TableCalendarBase extends StatefulWidget {
     this.onVerticalSwipe,
     this.onPageChanged,
     this.onCalendarCreated,
+    required this.onStartRangeSelection,
+    required this.onEndRangeSelection,
+    required this.onPanUpdate,
   })  : assert(!dowVisible || (dowHeight != null && dowBuilder != null)),
         assert(isSameDay(focusedDay, firstDay) || focusedDay.isAfter(firstDay)),
         assert(isSameDay(focusedDay, lastDay) || focusedDay.isBefore(lastDay)),
@@ -241,6 +255,16 @@ class _TableCalendarBaseState extends State<TableCalendarBase>
               },
               dowBuilder: widget.dowBuilder,
               dayBuilder: widget.dayBuilder,
+              onStartRangeSelection: (day) {
+                widget.onStartRangeSelection(day);
+              },
+              onEndRangeSelection: (day) {
+                widget.onEndRangeSelection(day);
+              },
+              onPanUpdate: (day) {
+                widget.onPanUpdate(day);
+              },
+              
             ),
           ),
         );

@@ -77,7 +77,7 @@ class _TableComplexExampleState extends State<TableComplexExample> {
     _selectedEvents.value = _getEventsForDays(_selectedDays);
   }
 
-  void _onRangeSelected(DateTime? start, DateTime? end, DateTime focusedDay) {
+  void _onRangeSelected(DateTime? start, DateTime? end, DateTime focusedDay, String? eventName) {
     setState(() {
       _focusedDay.value = focusedDay;
       _rangeStart = start;
