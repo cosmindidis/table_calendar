@@ -17,8 +17,12 @@ class _TableRangeExampleState extends State<TableRangeExample> {
       .toggledOn; // Can be toggled on/off by longpressing a date
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  DateTime? _rangeStart;
-  DateTime? _rangeEnd;
+  DateTime? rangeStartDate;
+  DateTime? rangeEndDate;
+
+  DateTime currentDate = DateTime.now();
+  DateTime firstDay = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime lastDay = DateTime(DateTime.now().year, DateTime.now().month + 1, 0);
 
   @override
   Widget build(BuildContext context) {
@@ -27,44 +31,68 @@ class _TableRangeExampleState extends State<TableRangeExample> {
         title: Text('TableCalendar - Range'),
       ),
       body: TableCalendar(
-        firstDay: kFirstDay,
-        lastDay: kLastDay,
+        firstDay: firstDay,
+        lastDay: lastDay,
         focusedDay: _focusedDay,
-        selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-        rangeStartDay: _rangeStart,
-        rangeEndDay: _rangeEnd,
+        //selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+        rangeStartDay: rangeStartDate,
+        rangeEndDay: rangeEndDate,
         calendarFormat: _calendarFormat,
         rangeSelectionMode: _rangeSelectionMode,
-        onDaySelected: (selectedDay, focusedDay) {
-          if (!isSameDay(_selectedDay, selectedDay)) {
-            setState(() {
-              _selectedDay = selectedDay;
-              _focusedDay = focusedDay;
-              _rangeStart = null; // Important to clean those
-              _rangeEnd = null;
-              _rangeSelectionMode = RangeSelectionMode.toggledOff;
-            });
-          }
-        },
-        onRangeSelected: (start, end, focusedDay, eventName) {
+        headerVisible: false,
+        headerStyle: HeaderStyle(
+          leftChevronVisible: false,
+          rightChevronVisible: false,
+          formatButtonVisible: false,
+        ),
+        // onDaySelected: (selectedDay, focusedDay) {
+        //   if (!isSameDay(_selectedDay, selectedDay)) {
+        //     setState(() {
+        //       _selectedDay = selectedDay;
+        //       _focusedDay = focusedDay;
+        //       _rangeStart = null; // Important to clean those
+        //       _rangeEnd = null;
+        //       _rangeSelectionMode = RangeSelectionMode.toggledOff;
+        //     });
+        //   }
+        // },
+        onRangeSelected: (start, end, focusedDay, eventName) async {
           setState(() {
-            _selectedDay = null;
-            _focusedDay = focusedDay;
-            _rangeStart = start;
-            _rangeEnd = end;
-            _rangeSelectionMode = RangeSelectionMode.toggledOn;
+            rangeStartDate = start;
+            rangeEndDate = end;
           });
-        },
-        onFormatChanged: (format) {
-          if (_calendarFormat != format) {
-            setState(() {
-              _calendarFormat = format;
+
+          if (eventName == "onEndRangeSelection") {
+            await showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return Dialog(
+                  child: Container(
+                    height: 50,
+                    width: 50,
+                    color: Colors.grey.shade200,
+                    child: Center(child: Text("Test"),))
+                );
             });
           }
+
+          if (eventName == "onEndRangeSelection") {
+            setState(() {
+              rangeStartDate = null;
+              rangeEndDate = null;
+            });
+        }
         },
-        onPageChanged: (focusedDay) {
-          _focusedDay = focusedDay;
-        },
+        // onFormatChanged: (format) {
+        //   if (_calendarFormat != format) {
+        //     setState(() {
+        //       _calendarFormat = format;
+        //     });
+        //   }
+        // },
+        // onPageChanged: (focusedDay) {
+        //   _focusedDay = focusedDay;
+        // },
       ),
     );
   }
