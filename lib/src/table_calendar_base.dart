@@ -10,7 +10,7 @@ import 'widgets/calendar_core.dart';
 /// custom - required to send the onPointerDown event from calendar_core
 typedef OnStartRangeSelection = void Function(DateTime day);
 /// custom - required to send the onPointerUp event from calendar_core
-typedef OnEndRangeSelection = void Function(DateTime day);
+typedef OnEndRangeSelection = void Function();
 /// custom - required to send the onPointerMove event from calendar_core
 typedef OnPanUpdate = void Function(DateTime day);
 
@@ -258,8 +258,8 @@ class _TableCalendarBaseState extends State<TableCalendarBase>
               onStartRangeSelection: (day) {
                 widget.onStartRangeSelection(day);
               },
-              onEndRangeSelection: (day) {
-                widget.onEndRangeSelection(day);
+              onEndRangeSelection: () {
+                widget.onEndRangeSelection();
               },
               onPanUpdate: (day) {
                 widget.onPanUpdate(day);

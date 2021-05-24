@@ -14,7 +14,7 @@ typedef _OnCalendarPageChanged = void Function(int pageIndex, DateTime focusedDa
 /// custom - required for onPointerDown listener
 typedef OnStartRangeSelection = void Function(DateTime day);
 /// custom - required for onPointerUp listener
-typedef OnEndRangeSelection = void Function(DateTime day);
+typedef OnEndRangeSelection = void Function();
 /// custom - required for onPointerMove listener
 typedef OnPanUpdate = void Function(DateTime day);
 
@@ -167,16 +167,19 @@ class CalendarCore extends StatelessWidget {
 
           if (info == "_onStartRangeSelection") {
               onStartRangeSelection(key);
-          }
-          else if (info == "_onEndRangeSelection") {
-              onEndRangeSelection(key);
+              return;
           }
           else if (info == "_onPanUpdate") {
               onPanUpdate(key);
+              return;
           }
         }
       }
     });
+
+    if (info == "_onEndRangeSelection") {
+      onEndRangeSelection();
+    }
 
     if (!found)
       print('No hit test');
