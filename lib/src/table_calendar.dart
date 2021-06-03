@@ -548,15 +548,16 @@ class _TableCalendarState<T> extends State<TableCalendar<T>> {
             onStartRangeSelection: (day) {
               print("onStartRangeSelection: " + day.day.toString());
               this.rangeStartDate = day;
+              this.rangeEndDate = day; 
               _isDayDisabled(day) 
                 ? widget.onDisabledDayTapped?.call(day)
                 : widget.onRangeSelected?.call(this.rangeStartDate, this.rangeStartDate, this.rangeStartDate, "onStartRangeSelection");
             },
             onEndRangeSelection: () {
               print("onEndRangeSelection: ");
-              _isDayDisabled(rangeEndDate)
-                ? null
-                : widget.onRangeSelected?.call(this.rangeStartDate, this.rangeEndDate, this.rangeStartDate, "onEndRangeSelection");
+                _isDayDisabled(this.rangeEndDate)
+                  ? null
+                  : widget.onRangeSelected?.call(this.rangeStartDate, this.rangeEndDate, this.rangeStartDate, "onEndRangeSelection");
             },
             onPanUpdate: (day) {
               print("onPanUpdate: " + day.day.toString());
