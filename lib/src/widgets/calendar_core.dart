@@ -159,19 +159,21 @@ class CalendarCore extends StatelessWidget {
   void _hitCell(String info, PointerEvent evt) {
     bool found = false;
     keys.forEach((key, value) {
-      RenderObject? box = value.currentContext!.findRenderObject();
-      if (box is RenderBox) {
-        if (box.hitTest(BoxHitTestResult(), position: box.globalToLocal(evt.position))) {
-          //print(info + ' '  + key.toString());
-          found = true;
+      if (value != null && value.currentContext != null) {
+        RenderObject? box = value.currentContext!.findRenderObject();
+        if (box != null && box is RenderBox) {
+          if (box.hitTest(BoxHitTestResult(), position: box.globalToLocal(evt.position))) {
+            //print(info + ' '  + key.toString());
+            found = true;
 
-          if (info == "_onStartRangeSelection") {
-              onStartRangeSelection(key);
-              return;
-          }
-          else if (info == "_onPanUpdate") {
-              onPanUpdate(key);
-              return;
+            if (info == "_onStartRangeSelection") {
+                onStartRangeSelection(key);
+                return;
+            }
+            else if (info == "_onPanUpdate") {
+                onPanUpdate(key);
+                return;
+            }
           }
         }
       }
