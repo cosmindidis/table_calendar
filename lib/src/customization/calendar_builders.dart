@@ -27,7 +27,7 @@ class CalendarBuilders<T> {
   /// Custom builder for day cells, with a priority over any other builder.
   final FocusedDayBuilder? prioritizedBuilder;
 
-  /// Custom builder for a day cell that matches `DateTime.now()`.
+  /// Custom builder for a day cell that matches the current day.
   final FocusedDayBuilder? todayBuilder;
 
   /// Custom builder for day cells that are currently marked as selected by `selectedDayPredicate`.
@@ -78,6 +78,10 @@ class CalendarBuilders<T> {
   /// Use to customize header's title using different widget
   final DayBuilder? headerTitleBuilder;
 
+  /// Custom builder for number of the week labels.
+  final Widget? Function(BuildContext context, int weekNumber)?
+      weekNumberBuilder;
+
   /// Creates `CalendarBuilders` for `TableCalendar` widget.
   const CalendarBuilders({
     this.prioritizedBuilder,
@@ -95,5 +99,6 @@ class CalendarBuilders<T> {
     this.markerBuilder,
     this.dowBuilder,
     this.headerTitleBuilder,
+    this.weekNumberBuilder,
   });
 }

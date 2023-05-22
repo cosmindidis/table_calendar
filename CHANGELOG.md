@@ -1,3 +1,46 @@
+## [3.0.9]
+
+* Updated intl version to 0.18.0
+* Added explicit android:exported value to AndroidManifest
+
+## [3.0.8]
+
+* Added tablePadding property to CalendarStyle
+
+## [3.0.7]
+
+* Added week numbering feature
+
+## [3.0.6]
+
+* Fixed issue with missing Flutter Web platform tag
+
+## [3.0.5]
+
+* Added a visual indicator to FormatButton
+* Header buttons are now platform-aware
+
+## [3.0.4]
+
+* Updated dependencies
+* Removed deprecated fields
+
+## [3.0.3]
+
+* Added semantic label to prioritizedBuilder
+* Added tableBorder property to CalendarStyle
+* Added cellAlignment property to CalendarStyle
+* Added cellPadding property to CalendarStyle
+
+## [3.0.2]
+
+* Improved semantic labels for screen readers
+
+## [3.0.1]
+
+* Added pageAnimationEnabled property
+* Added currentDay property to improve widget testability
+
 ## [3.0.0]
 
 * Migrated to null safety

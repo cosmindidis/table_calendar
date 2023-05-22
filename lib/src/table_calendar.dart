@@ -57,6 +57,11 @@ class TableCalendar<T> extends StatefulWidget {
   /// Days after it will use `disabledStyle` and trigger `onDisabledDayTapped` callback.
   final DateTime lastDay;
 
+  /// DateTime that will be treated as today. Defaults to `DateTime.now()`.
+  ///
+  /// Overriding this property might be useful for testing.
+  final DateTime? currentDay;
+
   /// List of days treated as weekend days.
   /// Use built-in `DateTime` weekday constants (e.g. `DateTime.monday`) instead of `int` literals (e.g. `1`).
   final List<int> weekendDays;
@@ -98,6 +103,9 @@ class TableCalendar<T> extends StatefulWidget {
 
   /// When set to true, `TableCalendar` will fill available height.
   final bool shouldFillViewport;
+
+  /// Whether to display week numbers on calendar.
+  final bool weekNumbersVisible;
 
   /// Used for setting the height of `TableCalendar`'s rows.
   final double rowHeight;
@@ -203,6 +211,7 @@ class TableCalendar<T> extends StatefulWidget {
     required DateTime focusedDay,
     required DateTime firstDay,
     required DateTime lastDay,
+    DateTime? currentDay,
     this.locale,
     this.rangeStartDay,
     this.rangeEndDay,
@@ -219,6 +228,7 @@ class TableCalendar<T> extends StatefulWidget {
     this.pageAnimationEnabled = true,
     this.sixWeekMonthsEnforced = false,
     this.shouldFillViewport = false,
+    this.weekNumbersVisible = false,
     this.rowHeight = 52.0,
     this.daysOfWeekHeight = 16.0,
     this.formatAnimationDuration = const Duration(milliseconds: 200),
@@ -260,6 +270,7 @@ class TableCalendar<T> extends StatefulWidget {
         focusedDay = normalizeDate(focusedDay),
         firstDay = normalizeDate(firstDay),
         lastDay = normalizeDate(lastDay),
+        currentDay = currentDay ?? DateTime.now(),
         super(key: key);
 
   @override
@@ -486,6 +497,8 @@ class _TableCalendarState<T> extends State<TableCalendar<T>> {
             startingDayOfWeek: widget.startingDayOfWeek,
             dowDecoration: widget.daysOfWeekStyle.decoration,
             rowDecoration: widget.calendarStyle.rowDecoration,
+            tableBorder: widget.calendarStyle.tableBorder,
+            tablePadding: widget.calendarStyle.tablePadding,
             dowVisible: widget.daysOfWeekVisible,
             dowHeight: widget.daysOfWeekHeight,
             rowHeight: widget.rowHeight,
@@ -502,6 +515,26 @@ class _TableCalendarState<T> extends State<TableCalendar<T>> {
               _focusedDay.value = focusedDay;
               widget.onPageChanged?.call(focusedDay);
             },
+            weekNumbersVisible: widget.weekNumbersVisible,
+            weekNumberBuilder: (BuildContext context, DateTime day) {
+              final weekNumber = _calculateWeekNumber(day);
+              Widget? cell = widget.calendarBuilders.weekNumberBuilder
+                  ?.call(context, weekNumber);
+
+              if (cell == null) {
+                cell = Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Center(
+                    child: Text(
+                      weekNumber.toString(),
+                      style: widget.calendarStyle.weekNumberTextStyle,
+                    ),
+                  ),
+                );
+              }
+
+              return cell;
+            },
             dowBuilder: (BuildContext context, DateTime day) {
               Widget? dowCell =
               widget.calendarBuilders.dowBuilder?.call(context, day);
@@ -515,11 +548,13 @@ class _TableCalendarState<T> extends State<TableCalendar<T>> {
                 _isWeekend(day, weekendDays: widget.weekendDays);
 
                 dowCell = Center(
-                  child: Text(
-                    weekdayString,
-                    style: isWeekend
-                        ? widget.daysOfWeekStyle.weekendStyle
-                        : widget.daysOfWeekStyle.weekdayStyle,
+                  child: ExcludeSemantics(
+                    child: Text(
+                      weekdayString,
+                      style: isWeekend
+                          ? widget.daysOfWeekStyle.weekendStyle
+                          : widget.daysOfWeekStyle.weekdayStyle,
+                    ),
                   ),
                 );
               }
@@ -620,11 +655,12 @@ class _TableCalendarState<T> extends State<TableCalendar<T>> {
           children.add(rangeHighlight);
         }
 
-        final isToday = isSameDay(day, DateTime.now());
+        final isToday = isSameDay(day, widget.currentDay);
         final isDisabled = _isDayDisabled(day);
         final isWeekend = _isWeekend(day, weekendDays: widget.weekendDays);
 
         Widget content = CellContent(
+          key: ValueKey('CellContent-${day.year}-${day.month}-${day.day}'),
           day: day,
           focusedDay: focusedDay,
           calendarStyle: widget.calendarStyle,
@@ -639,6 +675,7 @@ class _TableCalendarState<T> extends State<TableCalendar<T>> {
           isDisabled: isDisabled,
           isWeekend: isWeekend,
           isHoliday: widget.holidayPredicate?.call(day) ?? false,
+          locale: widget.locale,
         );
 
         children.add(content);
@@ -707,6 +744,20 @@ class _TableCalendarState<T> extends State<TableCalendar<T>> {
           margin: widget.calendarStyle.markerMargin,
           decoration: widget.calendarStyle.markerDecoration,
         );
+  }
+
+  int _calculateWeekNumber(DateTime date) {
+    final middleDay = date.add(const Duration(days: 3));
+    final dayOfYear = _dayOfYear(middleDay);
+
+    return 1 + ((dayOfYear - 1) / 7).floor();
+  }
+
+  int _dayOfYear(DateTime date) {
+    return normalizeDate(date)
+            .difference(DateTime.utc(date.year, 1, 1))
+            .inDays +
+        1;
   }
 
   bool _isWithinRange(DateTime day, DateTime start, DateTime end) {

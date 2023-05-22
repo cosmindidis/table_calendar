@@ -1,6 +1,5 @@
 // Copyright 2019 Aleksander Woźniak
 // SPDX-License-Identifier: Apache-2.0
-
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
@@ -9,13 +8,14 @@ import 'package:flutter/rendering.dart';
 import '../shared/utils.dart';
 import 'calendar_page.dart';
 
-typedef _OnCalendarPageChanged = void Function(int pageIndex, DateTime focusedDay);
+typedef _OnCalendarPageChanged = void Function(
+    int pageIndex, DateTime focusedDay);
 
-/// custom - required for onPointerDown listener
-typedef OnStartRangeSelection = void Function(DateTime day);
-/// custom - required for onPointerUp listener
-typedef OnEndRangeSelection = void Function();
-/// custom - required for onPointerMove listener
+/// custom - required for onPointerDown listener	
+typedef OnStartRangeSelection = void Function(DateTime day);	
+/// custom - required for onPointerUp listener	
+typedef OnEndRangeSelection = void Function();	
+/// custom - required for onPointerMove listener	
 typedef OnPanUpdate = void Function(DateTime day);
 
 class CalendarCore extends StatelessWidget {
@@ -24,11 +24,15 @@ class CalendarCore extends StatelessWidget {
   final DateTime lastDay;
   final CalendarFormat calendarFormat;
   final DayBuilder? dowBuilder;
+  final DayBuilder? weekNumberBuilder;
   final FocusedDayBuilder dayBuilder;
   final bool sixWeekMonthsEnforced;
   final bool dowVisible;
+  final bool weekNumbersVisible;
   final Decoration? dowDecoration;
   final Decoration? rowDecoration;
+  final TableBorder? tableBorder;
+  final EdgeInsets? tablePadding;
   final double? dowHeight;
   final double? rowHeight;
   final BoxConstraints constraints;
@@ -37,11 +41,9 @@ class CalendarCore extends StatelessWidget {
   final PageController? pageController;
   final ScrollPhysics? scrollPhysics;
   final _OnCalendarPageChanged onPageChanged;
-
-  final OnStartRangeSelection onStartRangeSelection;
-  final OnEndRangeSelection onEndRangeSelection;
-  final OnPanUpdate onPanUpdate;
-
+  final OnStartRangeSelection onStartRangeSelection;	
+  final OnEndRangeSelection onEndRangeSelection;	
+  final OnPanUpdate onPanUpdate;	
   final HashMap<DateTime, GlobalKey> keys = HashMap();
 
   CalendarCore({
@@ -61,11 +63,15 @@ class CalendarCore extends StatelessWidget {
     this.previousIndex,
     this.sixWeekMonthsEnforced = false,
     this.dowVisible = true,
+    this.weekNumberBuilder,
+    required this.weekNumbersVisible,
     this.dowDecoration,
     this.rowDecoration,
+    this.tableBorder,
+    this.tablePadding,
     this.scrollPhysics,
-    required this.onStartRangeSelection,
-    required this.onEndRangeSelection,
+    required this.onStartRangeSelection,	
+    required this.onEndRangeSelection,	
     required this.onPanUpdate
   })  : assert(!dowVisible || (dowHeight != null && dowBuilder != null)),
         super(key: key);
@@ -74,72 +80,84 @@ class CalendarCore extends StatelessWidget {
   Widget build(BuildContext context) {
     keys.clear();
 
-    return Listener(
-        onPointerDown: (_) => _onStartRangeSelection(_),
-        onPointerMove: (_) => _onPanUpdate(_),
-        onPointerUp: (_) => _onEndRangeSelection(_),
-        onPointerCancel: (_) => _onPointerCancel(_),
-        child: PageView.builder(
-          controller: pageController,
-          physics: scrollPhysics,
-          itemCount: _getPageCount(calendarFormat, firstDay, lastDay),
-          itemBuilder: (context, index) {
-            final baseDay = _getBaseDay(calendarFormat, index);
-            final visibleRange = _getVisibleRange(calendarFormat, baseDay);
-            final visibleDays = _daysInRange(visibleRange.start, visibleRange.end);
+    return Listener(	
+      onPointerDown: (_) => _onStartRangeSelection(_),	
+      onPointerMove: (_) => _onPanUpdate(_),	
+      onPointerUp: (_) => _onEndRangeSelection(_),	
+      onPointerCancel: (_) => _onPointerCancel(_),	
+      child: PageView.builder(
+        controller: pageController,
+        physics: scrollPhysics,
+        itemCount: _getPageCount(calendarFormat, firstDay, lastDay),
+        itemBuilder: (context, index) {
+          final baseDay = _getBaseDay(calendarFormat, index);
+          final visibleRange = _getVisibleRange(calendarFormat, baseDay);
+          final visibleDays = _daysInRange(visibleRange.start, visibleRange.end);
 
-            final actualDowHeight = dowVisible ? dowHeight! : 0.0;
-            final constrainedRowHeight = constraints.hasBoundedHeight
-                ? (constraints.maxHeight - actualDowHeight) /
-                    _getRowCount(calendarFormat, baseDay)
-                : null;
+          final actualDowHeight = dowVisible ? dowHeight! : 0.0;
+          final constrainedRowHeight = constraints.hasBoundedHeight
+              ? (constraints.maxHeight - actualDowHeight) /
+                  _getRowCount(calendarFormat, baseDay)
+              : null;
 
-            return CalendarPage(
-              visibleDays: visibleDays,
-              dowVisible: dowVisible,
-              dowDecoration: dowDecoration,
-              rowDecoration: rowDecoration,
-              dowBuilder: (context, day) {
-                return SizedBox(
-                  height: dowHeight,
-                  child: dowBuilder?.call(context, day),
-                );
-              },
-              dayBuilder: (context, day) {
-                DateTime baseDay;
-                final previousFocusedDay = focusedDay;
-                if (previousFocusedDay == null || previousIndex == null) {
-                  baseDay = _getBaseDay(calendarFormat, index);
-                } else {
-                  baseDay =
-                      _getFocusedDay(calendarFormat, previousFocusedDay, index);
-                }
+          return CalendarPage(
+            visibleDays: visibleDays,
+            dowVisible: dowVisible,
+            dowDecoration: dowDecoration,
+            rowDecoration: rowDecoration,
+            tableBorder: tableBorder,
+            tablePadding: tablePadding,
+            dowBuilder: (context, day) {
+              return SizedBox(
+                height: dowHeight,
+                child: dowBuilder?.call(context, day),
+              );
+            },
+            dayBuilder: (context, day) {
+              DateTime baseDay;
+              final previousFocusedDay = focusedDay;
+              if (previousFocusedDay == null || previousIndex == null) {
+                baseDay = _getBaseDay(calendarFormat, index);
+              } else {
+                baseDay =
+                    _getFocusedDay(calendarFormat, previousFocusedDay, index);
+              }
 
-                GlobalKey k = GlobalKey();
-                keys[day] = k;
-                return SizedBox(
-                  key: k,
-                  height: constrainedRowHeight ?? rowHeight,
-                  child: dayBuilder(context, day, baseDay),
-                );
-              },
-            );
-          },
-          onPageChanged: (index) {
-            DateTime baseDay;
-            final previousFocusedDay = focusedDay;
-            if (previousFocusedDay == null || previousIndex == null) {
-              baseDay = _getBaseDay(calendarFormat, index);
-            } else {
-              baseDay = _getFocusedDay(calendarFormat, previousFocusedDay, index);
-            }
+              GlobalKey k = GlobalKey();	
+              keys[day] = k;
 
-            return onPageChanged(index, baseDay);
-          },
-        )
+              return SizedBox(
+                key: k,
+                height: constrainedRowHeight ?? rowHeight,
+                child: dayBuilder(context, day, baseDay),
+              );
+            },
+            dowHeight: dowHeight,
+            weekNumberVisible: weekNumbersVisible,
+            weekNumberBuilder: (context, day) {
+              return SizedBox(
+                height: constrainedRowHeight ?? rowHeight,
+                child: weekNumberBuilder?.call(context, day),
+              );
+            },
+          );
+        },
+        onPageChanged: (index) {
+          DateTime baseDay;
+          final previousFocusedDay = focusedDay;
+          if (previousFocusedDay == null || previousIndex == null) {
+            baseDay = _getBaseDay(calendarFormat, index);
+          } else {
+            baseDay = _getFocusedDay(calendarFormat, previousFocusedDay, index);
+          }
+
+          return onPageChanged(index, baseDay);
+        },
+      )
     );
   }
 
+  /* custom */
   void _onStartRangeSelection(PointerDownEvent evt) {
     _hitCell('_onStartRangeSelection', evt);
   }
@@ -159,7 +177,7 @@ class CalendarCore extends StatelessWidget {
   void _hitCell(String info, PointerEvent evt) {
     bool found = false;
     keys.forEach((key, value) {
-      if (value != null && value.currentContext != null) {
+      if (value.currentContext != null) {
         RenderObject? box = value.currentContext!.findRenderObject();
         if (box != null && box is RenderBox) {
           if (box.hitTest(BoxHitTestResult(), position: box.globalToLocal(evt.position))) {
@@ -186,6 +204,7 @@ class CalendarCore extends StatelessWidget {
     if (!found)
       print('No hit test');
   }
+  /* end custom */
 
   int _getPageCount(CalendarFormat format, DateTime first, DateTime last) {
     switch (format) {
