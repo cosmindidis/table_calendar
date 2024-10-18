@@ -681,7 +681,14 @@ class _TableCalendarState<T> extends State<TableCalendar<T>> {
         children.add(content);
 
         if (!isDisabled) {
-          final events = widget.eventLoader?.call(day) ?? [];
+          final events;
+          if (widget.eventLoader != null) {
+            events = widget.eventLoader!.call(day);
+          }
+          else {
+            events = [];
+          }
+
           Widget? markerWidget =
           widget.calendarBuilders.markerBuilder?.call(context, day, events);
 
